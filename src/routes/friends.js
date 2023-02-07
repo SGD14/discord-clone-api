@@ -5,7 +5,16 @@ const User = require("../models/user");
 
 const friendsRouter = express.Router();
 
-friendsRouter.post("/addfriend", requireAuth, async (req, res) => {
+friendsRouter.get("/friendrequests", requireAuth, async (req, res) => {
+  try {
+    const requests = await FriendRequest.find({ receiver_id: req.user._id });
+    return res.json(requests);
+  } catch (error) {
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR" });
+  }
+});
+
+friendsRouter.post("/friendrequests", requireAuth, async (req, res) => {
   try {
     // Check the receiver user exists
     const receiverId = (await User.findOne({ email: req.body.email }))?._id;
