@@ -1,50 +1,103 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const requireAuth = require("../middlewares/requireAuth");
 const FriendRequest = require("../models/friendRequest");
+const Friendship = require("../models/friendships");
 const User = require("../models/user");
 
 const friendsRouter = express.Router();
 
 friendsRouter.get("/friendrequests", requireAuth, async (req, res) => {
-  try {
-    const requests = await FriendRequest.find({ receiver_id: req.user._id });
-    return res.json(requests);
-  } catch (error) {
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR" });
-  }
+  const requests = await FriendRequest.find({ receiver_id: req.user._id });
+  return res.json(requests);
 });
 
 friendsRouter.post("/friendrequests", requireAuth, async (req, res) => {
-  try {
-    // Check the receiver user exists
-    const receiverId = (await User.findOne({ email: req.body.email }))?._id;
-    if (!receiverId) return res.status(400).json({ error: "USER_NOT_FOUND" });
+  // Check the receiver user exists
+  const receiverId = (await User.findOne({ email: req.body.email }))?._id;
+  if (!receiverId) return res.status(400).json({ error: "USER_NOT_FOUND" });
 
-    // Check user is not trying to friend himself
-    if (receiverId.toString() === req.user._id)
-      return res.status(400).json({ error: "CANT_FRIEND_SELF" });
+  // Check user is not trying to friend himself
+  if (receiverId.toString() === req.user._id)
+    return res.status(400).json({ error: "CANT_FRIEND_SELF" });
 
-    // TODO - Check that users are not friend already
+  // Check that users are not friend already
+  const friendship = await Friendship.findOne({
+    $or: [
+      { user1: req.user._id, user2: receiverId },
+      { user1: receiverId, user2: req.user._id },
+    ],
+  });
+  
+  if (friendship) return res.status(400).json({ error: "ALREADY_FRIEND" });
 
-    // Check the request does not exist already.
-    const existingRequest = await FriendRequest.findOne({
-      sender_id: req.user._id,
-      receiver_id: receiverId,
+  // Check the request does not exist already.
+  const existingRequest = await FriendRequest.findOne({
+    sender_id: req.user._id,
+    receiver_id: receiverId,
+  });
+
+  if (existingRequest)
+    return res.status(400).json({ error: "REQUEST_ALREADY_MADE" });
+
+  // Create the request
+  await FriendRequest({
+    sender_id: req.user._id,
+    receiver_id: receiverId,
+  }).save();
+
+  return res.json({ MESSAGE: "REQUEST_CREATED" });
+});
+
+friendsRouter.delete(
+  "/friendrequests/:requestId/accept",
+  requireAuth,
+  async (req, res, next) => {
+    const session = await mongoose.startSession();
+
+    try {
+      session.startTransaction();
+
+      const request = await FriendRequest.findOneAndDelete({
+        _id: req.params.requestId,
+        receiver_id: req.user._id,
+      });
+
+      if (!request) {
+        await session.abortTransaction();
+        return res.status(400).json({ error: "REQUEST_NOT_FOUND" });
+      }
+
+      await Friendship({
+        user1: request.sender_id,
+        user2: request.receiver_id,
+      }).save();
+
+      await session.commitTransaction();
+
+      return res.status(200).end();
+    } catch (error) {
+      await session.abortTransaction();
+      return next(error);
+    } finally {
+      await session.endSession();
+    }
+  }
+);
+
+friendsRouter.delete(
+  "/friendrequests/:requestId/decline",
+  requireAuth,
+  async (req, res) => {
+    const request = await FriendRequest.findOneAndDelete({
+      _id: req.params.requestId,
+      receiver_id: req.user._id,
     });
 
-    if (existingRequest)
-      return res.status(400).json({ error: "REQUEST_ALREADY_MADE" });
+    if (!request) return res.status(400).json({ error: "REQUEST_NOT_FOUND" });
 
-    // Create the request
-    await FriendRequest({
-      sender_id: req.user._id,
-      receiver_id: receiverId,
-    }).save();
-
-    return res.json({ MESSAGE: "REQUEST_CREATED" });
-  } catch (error) {
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR" });
+    return res.status(200).end();
   }
-});
+);
 
 module.exports = friendsRouter;

@@ -26,23 +26,19 @@ authRouter.post(
   body("password").notEmpty().withMessage("INVALID_PASSWORD"),
   catchValidationErrors,
   async (req, res) => {
-    try {
-      const { email, password } = req.body;
+    const { email, password } = req.body;
 
-      const user = await User.findOne({ email });
-      if (!user)
-        return res.statusCode(400).json({ error: "INVALID_CREDENTIALS" });
+    const user = await User.findOne({ email });
+    if (!user)
+      return res.statusCode(400).json({ error: "INVALID_CREDENTIALS" });
 
-      const passwordMatches = await bcrypt.compare(password, user.password);
-      if (!passwordMatches) {
-        return res.statusCode(400).json({ error: "INVALID_CREDENTIALS" });
-      }
-
-      const token = jwt.sign({ _id: user._id }, process.env.SECRET_KEY);
-      return res.json({ token });
-    } catch (err) {
-      return res.status(500).json({ error: "INTERNAL_SERVER_ERROR" });
+    const passwordMatches = await bcrypt.compare(password, user.password);
+    if (!passwordMatches) {
+      return res.statusCode(400).json({ error: "INVALID_CREDENTIALS" });
     }
+
+    const token = jwt.sign({ _id: user._id }, process.env.SECRET_KEY);
+    return res.json({ token });
   }
 );
 
@@ -52,20 +48,16 @@ authRouter.post(
   body("password").notEmpty().withMessage("INVALID_PASSWORD"),
   catchValidationErrors,
   async (req, res) => {
-    try {
-      const { email, password } = req.body;
+    const { email, password } = req.body;
 
-      const user = await User.findOne({ email });
-      if (user) return res.status(400).json({ error: "EMAIL_ALREADY_IN_USE" });
+    const user = await User.findOne({ email });
+    if (user) return res.status(400).json({ error: "EMAIL_ALREADY_IN_USE" });
 
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const newUser = await User({ email, password: hashedPassword }).save();
-      const token = jwt.sign({ _id: newUser._id }, process.env.SECRET_KEY);
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = await User({ email, password: hashedPassword }).save();
+    const token = jwt.sign({ _id: newUser._id }, process.env.SECRET_KEY);
 
-      return res.json({ token });
-    } catch (error) {
-      return res.status(500).json({ error: "INTERNAL_SERVER_ERROR" });
-    }
+    return res.json({ token });
   }
 );
 
