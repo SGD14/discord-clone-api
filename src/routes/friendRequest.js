@@ -5,14 +5,14 @@ const FriendRequest = require("../models/friendRequest");
 const Friendship = require("../models/friendships");
 const User = require("../models/user");
 
-const friendsRouter = express.Router();
+const friendRequestRouter = express.Router();
 
-friendsRouter.get("/friendrequests", requireAuth, async (req, res) => {
-  const requests = await FriendRequest.find({ receiver_id: req.user._id });
+friendRequestRouter.get("/", requireAuth, async (req, res) => {
+  const requests = await FriendRequest.find({ receiver: req.user._id });
   return res.json(requests);
 });
 
-friendsRouter.post("/friendrequests", requireAuth, async (req, res) => {
+friendRequestRouter.post("/", requireAuth, async (req, res) => {
   // Check the receiver user exists
   const receiverId = (await User.findOne({ email: req.body.email }))?._id;
   if (!receiverId) return res.status(400).json({ error: "USER_NOT_FOUND" });
@@ -28,13 +28,13 @@ friendsRouter.post("/friendrequests", requireAuth, async (req, res) => {
       { user1: receiverId, user2: req.user._id },
     ],
   });
-  
+
   if (friendship) return res.status(400).json({ error: "ALREADY_FRIEND" });
 
   // Check the request does not exist already.
   const existingRequest = await FriendRequest.findOne({
-    sender_id: req.user._id,
-    receiver_id: receiverId,
+    sender: req.user._id,
+    receiver: receiverId,
   });
 
   if (existingRequest)
@@ -42,15 +42,15 @@ friendsRouter.post("/friendrequests", requireAuth, async (req, res) => {
 
   // Create the request
   await FriendRequest({
-    sender_id: req.user._id,
-    receiver_id: receiverId,
+    sender: req.user._id,
+    receiver: receiverId,
   }).save();
 
   return res.json({ MESSAGE: "REQUEST_CREATED" });
 });
 
-friendsRouter.delete(
-  "/friendrequests/:requestId/accept",
+friendRequestRouter.delete(
+  "/:requestId/accept",
   requireAuth,
   async (req, res, next) => {
     const session = await mongoose.startSession();
@@ -60,8 +60,8 @@ friendsRouter.delete(
 
       const request = await FriendRequest.findOneAndDelete({
         _id: req.params.requestId,
-        receiver_id: req.user._id,
-      });
+        receiver: req.user._id,
+      }).session(session);
 
       if (!request) {
         await session.abortTransaction();
@@ -69,13 +69,13 @@ friendsRouter.delete(
       }
 
       await Friendship({
-        user1: request.sender_id,
-        user2: request.receiver_id,
-      }).save();
+        user1: request.sender,
+        user2: request.receiver,
+      }).save({ session });
 
       await session.commitTransaction();
 
-      return res.status(200).end();
+      return res.status(200).json();
     } catch (error) {
       await session.abortTransaction();
       return next(error);
@@ -85,19 +85,15 @@ friendsRouter.delete(
   }
 );
 
-friendsRouter.delete(
-  "/friendrequests/:requestId/decline",
-  requireAuth,
-  async (req, res) => {
-    const request = await FriendRequest.findOneAndDelete({
-      _id: req.params.requestId,
-      receiver_id: req.user._id,
-    });
+friendRequestRouter.delete("/:requestId/decline", requireAuth, async (req, res) => {
+  const request = await FriendRequest.findOneAndDelete({
+    _id: req.params.requestId,
+    receiver: req.user._id,
+  });
 
-    if (!request) return res.status(400).json({ error: "REQUEST_NOT_FOUND" });
+  if (!request) return res.status(400).json({ error: "REQUEST_NOT_FOUND" });
 
-    return res.status(200).end();
-  }
-);
+  return res.status(200).end();
+});
 
-module.exports = friendsRouter;
+module.exports = friendRequestRouter;
