@@ -37,4 +37,38 @@ userRouter.get("/:userId/friends", requireAuth, async (req, res) => {
   return res.json(friends);
 });
 
+userRouter.get(
+  "/:userId/friend-chat-shortcuts",
+  requireAuth,
+  async (req, res) => {
+    if (req.params.userId !== req.user._id)
+      return res.status(400).json({ error: "UNAUTHORIZED" });
+
+    const user = await User.findById(req.params.userId, {
+      _id: 0,
+      friendChatShortcuts: 1,
+    });
+
+    return res.json(user.friendChatShortcuts);
+  }
+);
+
+userRouter.post(
+  "/:userId/friend-chat-shortcuts",
+  requireAuth,
+  async (req, res) => {
+    if (req.params.userId !== req.user._id)
+      return res.status(400).json({ error: "UNAUTHORIZED" });
+
+    await User.updateOne(
+      { _id: req.params.userId },
+      {
+        $addToSet: { friendChatShortcuts: req.body.friendId },
+      }
+    );
+
+    return res.json();
+  }
+);
+
 module.exports = userRouter;
