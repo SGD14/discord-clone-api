@@ -29,7 +29,9 @@ userRouter.get("/:userId/friends", requireAuth, async (req, res) => {
   if (friendships.length === 0) return res.json([]);
 
   const friendIds = friendships.map((friendship) =>
-    friendship.user1.toString() === req.params.userId ? friendship.user2 : friendship.user1
+    friendship.user1.toString() === req.params.userId
+      ? friendship.user2
+      : friendship.user1
   );
 
   const friends = await User.find(

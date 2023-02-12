@@ -16,7 +16,11 @@ privateMessageRouter.get("/users/:userId", requireAuth, async (req, res) => {
 });
 
 privateMessageRouter.post("/users/:userId", requireAuth, async (req, res) => {
-  const newMessage = await PrivateMessage({sender: req.user._id, receiver: req.params.userId, text: req.body.text}).save();
+  const newMessage = await PrivateMessage({
+    sender: req.user._id,
+    receiver: req.params.userId,
+    text: req.body.text,
+  }).save();
 
   return res.json(newMessage);
 });

@@ -14,7 +14,7 @@ const PrivateMessage = mongoose.model("Private_Message", {
     ref: "User",
   },
   text: { type: String, required: true },
-  createDate: {type: Date, default: () => new Date()}
+  createDate: { type: Date, default: () => new Date() },
 });
 
 module.exports = PrivateMessage;
