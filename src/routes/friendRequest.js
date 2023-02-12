@@ -85,15 +85,19 @@ friendRequestRouter.delete(
   }
 );
 
-friendRequestRouter.delete("/:requestId/decline", requireAuth, async (req, res) => {
-  const request = await FriendRequest.findOneAndDelete({
-    _id: req.params.requestId,
-    receiver: req.user._id,
-  });
+friendRequestRouter.delete(
+  "/:requestId/decline",
+  requireAuth,
+  async (req, res) => {
+    const request = await FriendRequest.findOneAndDelete({
+      _id: req.params.requestId,
+      receiver: req.user._id,
+    });
 
-  if (!request) return res.status(400).json({ error: "REQUEST_NOT_FOUND" });
+    if (!request) return res.status(400).json({ error: "REQUEST_NOT_FOUND" });
 
-  return res.status(200).end();
-});
+    return res.status(200).end();
+  }
+);
 
 module.exports = friendRequestRouter;

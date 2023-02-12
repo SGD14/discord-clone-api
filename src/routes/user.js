@@ -6,7 +6,10 @@ const User = require("../models/user");
 const userRouter = express.Router();
 
 userRouter.get("/:userId", requireAuth, async (req, res) => {
-  const user = await User.findById(req.params.userId, { password: 0 });
+  const user = await User.findById(req.params.userId, {
+    email: 1,
+    profilePicture: 1,
+  });
 
   // TODO - Check if user has permission to see the requested user info
 
@@ -26,7 +29,7 @@ userRouter.get("/:userId/friends", requireAuth, async (req, res) => {
   if (friendships.length === 0) return res.json([]);
 
   const friendIds = friendships.map((friendship) =>
-    friendship.user1 === req.params.userId ? friendship.user2 : friendship.user1
+    friendship.user1.toString() === req.params.userId ? friendship.user2 : friendship.user1
   );
 
   const friends = await User.find(

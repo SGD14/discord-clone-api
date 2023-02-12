@@ -5,6 +5,7 @@ require("dotenv").config();
 const authRouter = require("./src/routes/auth");
 const friendRequestRouter = require("./src/routes/friendRequest");
 const userRouter = require("./src/routes/user");
+const privateMessageRouter = require("./src/routes/privateMessage");
 
 // Init Mongoose
 mongoose.connect(process.env.DATABASE_URI);
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use("/auth", authRouter);
 app.use("/users", userRouter);
 app.use("/friend-requests", friendRequestRouter);
+app.use("/private-messages", privateMessageRouter);
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
