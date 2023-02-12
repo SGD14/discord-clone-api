@@ -1,30 +1,18 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const { body, validationResult } = require("express-validator");
+const { body } = require("express-validator");
 
 const User = require("../models/user");
+const bodyValidationErrorHandler = require("../middlewares/bodyValidationErrorHandler");
 
 const authRouter = express.Router();
-
-const catchValidationErrors = (req, res, next) => {
-  const validationErrors = validationResult(req);
-  if (!validationErrors.isEmpty()) {
-    res.status(400).json({
-      error: "INVALID_REQUEST",
-      validationErrors: validationErrors.array().map((error) => error.msg),
-    });
-    return;
-  }
-
-  next();
-};
 
 authRouter.post(
   "/login",
   body("email").notEmpty().isEmail().withMessage("INVALID_EMAIL"),
   body("password").notEmpty().withMessage("INVALID_PASSWORD"),
-  catchValidationErrors,
+  bodyValidationErrorHandler,
   async (req, res) => {
     const { email, password } = req.body;
 
@@ -46,7 +34,7 @@ authRouter.post(
   "/register",
   body("email").notEmpty().isEmail().withMessage("INVALID_EMAIL"),
   body("password").notEmpty().withMessage("INVALID_PASSWORD"),
-  catchValidationErrors,
+  bodyValidationErrorHandler,
   async (req, res) => {
     const { email, password } = req.body;
 

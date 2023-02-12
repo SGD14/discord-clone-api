@@ -1,5 +1,7 @@
 const express = require("express");
+const { body } = require("express-validator");
 const mongoose = require("mongoose");
+const bodyValidationErrorHandler = require("../middlewares/bodyValidationErrorHandler");
 const requireAuth = require("../middlewares/requireAuth");
 const FriendRequest = require("../models/friendRequest");
 const Friendship = require("../models/friendships");
@@ -12,42 +14,48 @@ friendRequestRouter.get("/", requireAuth, async (req, res) => {
   return res.json(requests);
 });
 
-friendRequestRouter.post("/", requireAuth, async (req, res) => {
-  // Check the receiver user exists
-  const receiverId = (await User.findOne({ email: req.body.email }))?._id;
-  if (!receiverId) return res.status(400).json({ error: "USER_NOT_FOUND" });
+friendRequestRouter.post(
+  "/",
+  requireAuth,
+  body("email").notEmpty().isEmail().withMessage("INVALID_EMAIL"),
+  bodyValidationErrorHandler,
+  async (req, res) => {
+    // Check the receiver user exists
+    const receiverId = (await User.findOne({ email: req.body.email }))?._id;
+    if (!receiverId) return res.status(400).json({ error: "USER_NOT_FOUND" });
 
-  // Check user is not trying to friend himself
-  if (receiverId.toString() === req.user._id)
-    return res.status(400).json({ error: "CANT_FRIEND_SELF" });
+    // Check user is not trying to friend himself
+    if (receiverId.toString() === req.user._id)
+      return res.status(400).json({ error: "CANT_FRIEND_SELF" });
 
-  // Check that users are not friend already
-  const friendship = await Friendship.findOne({
-    $or: [
-      { user1: req.user._id, user2: receiverId },
-      { user1: receiverId, user2: req.user._id },
-    ],
-  });
+    // Check that users are not friend already
+    const friendship = await Friendship.findOne({
+      $or: [
+        { user1: req.user._id, user2: receiverId },
+        { user1: receiverId, user2: req.user._id },
+      ],
+    });
 
-  if (friendship) return res.status(400).json({ error: "ALREADY_FRIEND" });
+    if (friendship) return res.status(400).json({ error: "ALREADY_FRIEND" });
 
-  // Check the request does not exist already.
-  const existingRequest = await FriendRequest.findOne({
-    sender: req.user._id,
-    receiver: receiverId,
-  });
+    // Check the request does not exist already.
+    const existingRequest = await FriendRequest.findOne({
+      sender: req.user._id,
+      receiver: receiverId,
+    });
 
-  if (existingRequest)
-    return res.status(400).json({ error: "REQUEST_ALREADY_MADE" });
+    if (existingRequest)
+      return res.status(400).json({ error: "REQUEST_ALREADY_MADE" });
 
-  // Create the request
-  await FriendRequest({
-    sender: req.user._id,
-    receiver: receiverId,
-  }).save();
+    // Create the request
+    await FriendRequest({
+      sender: req.user._id,
+      receiver: receiverId,
+    }).save();
 
-  return res.json({ MESSAGE: "REQUEST_CREATED" });
-});
+    return res.json({ MESSAGE: "REQUEST_CREATED" });
+  }
+);
 
 friendRequestRouter.delete(
   "/:requestId/accept",

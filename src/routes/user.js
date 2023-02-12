@@ -1,4 +1,6 @@
 const express = require("express");
+const { body } = require("express-validator");
+const bodyValidationErrorHandler = require("../middlewares/bodyValidationErrorHandler");
 const requireAuth = require("../middlewares/requireAuth");
 const Friendship = require("../models/friendships");
 const User = require("../models/user");
@@ -61,6 +63,8 @@ userRouter.get(
 userRouter.post(
   "/:userId/friend-chat-shortcuts",
   requireAuth,
+  body("friendId").notEmpty().withMessage("INVALID_FRIEND_ID").escape(),
+  bodyValidationErrorHandler,
   async (req, res) => {
     if (req.params.userId !== req.user._id)
       return res.status(400).json({ error: "UNAUTHORIZED" });
