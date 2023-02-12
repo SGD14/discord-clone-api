@@ -10,7 +10,7 @@ privateMessageRouter.get("/users/:userId", requireAuth, async (req, res) => {
       { sender: req.params.userId, receiver: req.user._id },
       { sender: req.user._id, receiver: req.params.userId },
     ],
-  });
+  }).sort({ createDate: 1 });
 
   return res.json(messages);
 });
