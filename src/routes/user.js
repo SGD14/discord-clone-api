@@ -94,7 +94,7 @@ userRouter.post(
       }
     );
 
-    return res.json();
+    return res.json(null);
   }
 );
 

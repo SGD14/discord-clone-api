@@ -85,7 +85,7 @@ friendRequestRouter.delete(
 
       await session.commitTransaction();
 
-      return res.status(200).json();
+      return res.status(200).json(null);
     } catch (error) {
       await session.abortTransaction();
       return next(error);
@@ -108,7 +108,7 @@ friendRequestRouter.delete(
 
     if (!request) return res.status(400).json({ error: "REQUEST_NOT_FOUND" });
 
-    return res.status(200).end();
+    return res.status(200).json(null);
   }
 );
 
