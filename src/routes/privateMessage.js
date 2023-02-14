@@ -26,7 +26,7 @@ privateMessageRouter.get(
 privateMessageRouter.post(
   "/users/:userId",
   requireAuth,
-  body("text").notEmpty().withMessage("INVALID_TEXT").escape(),
+  body("text").trim().notEmpty().withMessage("INVALID_TEXT").escape(),
   param("userId").isMongoId().withMessage("INVALID_USER_ID"),
   validationErrorHandler,
   async (req, res) => {
