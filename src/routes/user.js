@@ -1,52 +1,69 @@
 const express = require("express");
-const { body } = require("express-validator");
-const bodyValidationErrorHandler = require("../middlewares/bodyValidationErrorHandler");
+const { body, param } = require("express-validator");
+const validationErrorHandler = require("../middlewares/validationErrorHandler");
 const requireAuth = require("../middlewares/requireAuth");
 const Friendship = require("../models/friendships");
 const User = require("../models/user");
 
 const userRouter = express.Router();
 
-userRouter.get("/:userId", requireAuth, async (req, res) => {
-  const user = await User.findById(req.params.userId, {
-    email: 1,
-    profilePicture: 1,
-  });
+userRouter.get(
+  "/:userId",
+  requireAuth,
+  param("userId").isMongoId().withMessage("INVALID_USER_ID"),
+  validationErrorHandler,
+  async (req, res) => {
+    const user = await User.findOne(
+      { _id: req.params.userId },
+      {
+        email: 1,
+        profilePicture: 1,
+      }
+    );
 
-  // TODO - Check if user has permission to see the requested user info
+    // TODO - Check if user has permission to see the requested user info
 
-  if (!user) return res.status(404).json({ error: "USER_NOT_FOUND" });
+    if (!user) return res.status(404).json({ error: "USER_NOT_FOUND" });
 
-  return res.json(user);
-});
+    return res.json(user);
+  }
+);
 
-userRouter.get("/:userId/friends", requireAuth, async (req, res) => {
-  if (req.params.userId !== req.user._id)
-    return res.status(400).json({ error: "UNAUTHORIZED" });
+userRouter.get(
+  "/:userId/friends",
+  requireAuth,
+  param("userId").isMongoId().withMessage("INVALID_USER_ID"),
+  validationErrorHandler,
+  async (req, res) => {
+    if (req.params.userId !== req.user._id)
+      return res.status(400).json({ error: "UNAUTHORIZED" });
 
-  const friendships = await Friendship.find({
-    $or: [{ user1: req.params.userId }, { user2: req.params.userId }],
-  });
+    const friendships = await Friendship.find({
+      $or: [{ user1: req.params.userId }, { user2: req.params.userId }],
+    });
 
-  if (friendships.length === 0) return res.json([]);
+    if (friendships.length === 0) return res.json([]);
 
-  const friendIds = friendships.map((friendship) =>
-    friendship.user1.toString() === req.params.userId
-      ? friendship.user2
-      : friendship.user1
-  );
+    const friendIds = friendships.map((friendship) =>
+      friendship.user1.toString() === req.params.userId
+        ? friendship.user2
+        : friendship.user1
+    );
 
-  const friends = await User.find(
-    { _id: { $in: friendIds } },
-    { email: 1, profilePicture: 1 }
-  );
+    const friends = await User.find(
+      { _id: { $in: friendIds } },
+      { email: 1, profilePicture: 1 }
+    );
 
-  return res.json(friends);
-});
+    return res.json(friends);
+  }
+);
 
 userRouter.get(
   "/:userId/friend-chat-shortcuts",
   requireAuth,
+  param("userId").isMongoId().withMessage("INVALID_USER_ID"),
+  validationErrorHandler,
   async (req, res) => {
     if (req.params.userId !== req.user._id)
       return res.status(400).json({ error: "UNAUTHORIZED" });
@@ -63,8 +80,9 @@ userRouter.get(
 userRouter.post(
   "/:userId/friend-chat-shortcuts",
   requireAuth,
+  param("userId").isMongoId().withMessage("INVALID_USER_ID"),
   body("friendId").notEmpty().withMessage("INVALID_FRIEND_ID").escape(),
-  bodyValidationErrorHandler,
+  validationErrorHandler,
   async (req, res) => {
     if (req.params.userId !== req.user._id)
       return res.status(400).json({ error: "UNAUTHORIZED" });

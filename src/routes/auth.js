@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const { body } = require("express-validator");
 
 const User = require("../models/user");
-const bodyValidationErrorHandler = require("../middlewares/bodyValidationErrorHandler");
+const validationErrorHandler = require("../middlewares/validationErrorHandler");
 
 const authRouter = express.Router();
 
@@ -12,7 +12,7 @@ authRouter.post(
   "/login",
   body("email").notEmpty().isEmail().withMessage("INVALID_EMAIL"),
   body("password").notEmpty().withMessage("INVALID_PASSWORD"),
-  bodyValidationErrorHandler,
+  validationErrorHandler,
   async (req, res) => {
     const { email, password } = req.body;
 
@@ -34,7 +34,7 @@ authRouter.post(
   "/register",
   body("email").notEmpty().isEmail().withMessage("INVALID_EMAIL"),
   body("password").notEmpty().withMessage("INVALID_PASSWORD"),
-  bodyValidationErrorHandler,
+  validationErrorHandler,
   async (req, res) => {
     const { email, password } = req.body;
 

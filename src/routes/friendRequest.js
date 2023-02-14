@@ -1,7 +1,7 @@
 const express = require("express");
-const { body } = require("express-validator");
+const { body, param } = require("express-validator");
 const mongoose = require("mongoose");
-const bodyValidationErrorHandler = require("../middlewares/bodyValidationErrorHandler");
+const validationErrorHandler = require("../middlewares/validationErrorHandler");
 const requireAuth = require("../middlewares/requireAuth");
 const FriendRequest = require("../models/friendRequest");
 const Friendship = require("../models/friendships");
@@ -18,7 +18,7 @@ friendRequestRouter.post(
   "/",
   requireAuth,
   body("email").notEmpty().isEmail().withMessage("INVALID_EMAIL"),
-  bodyValidationErrorHandler,
+  validationErrorHandler,
   async (req, res) => {
     // Check the receiver user exists
     const receiverId = (await User.findOne({ email: req.body.email }))?._id;
@@ -60,6 +60,8 @@ friendRequestRouter.post(
 friendRequestRouter.delete(
   "/:requestId/accept",
   requireAuth,
+  param("requestId").isMongoId().withMessage("INVALID_USER_ID"),
+  validationErrorHandler,
   async (req, res, next) => {
     const session = await mongoose.startSession();
 
@@ -96,6 +98,8 @@ friendRequestRouter.delete(
 friendRequestRouter.delete(
   "/:requestId/decline",
   requireAuth,
+  param("requestId").isMongoId().withMessage("INVALID_USER_ID"),
+  validationErrorHandler,
   async (req, res) => {
     const request = await FriendRequest.findOneAndDelete({
       _id: req.params.requestId,
